@@ -11,6 +11,7 @@ from typing import Any, Optional, Tuple
 import discord
 from discord.ext import commands
 from discord.ext.commands import Bot, Cog, Context, group
+from revai.database import db, db_session
 
 
 class CodeEval(Cog):
@@ -137,6 +138,8 @@ class CodeEval(Cog):
             "bot": self.bot,
             "inspect": inspect,
             "discord": discord,
+            "db": db,
+            "db_session": db_session,
             "contextlib": contextlib
         }
 

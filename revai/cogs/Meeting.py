@@ -58,7 +58,7 @@ class Meeting(commands.Cog):
                 now = arrow.now('US/Eastern')
                 if date.shift(minutes=-31) <= now:
                     organizer = discord.utils.get(self.client.users, id=int(meetup.organizer))
-                    attendees = [discord.utils.get(self.client.users, id=m) for m in meetup.attendees]
+                    attendees = [discord.utils.get(self.client.users, id=int(m)) for m in meetup.attendees]
                     if attendees:
                         await organizer.send(f'Your meetup with {", ".join([m.name for m in attendees[:-1]])} and {attendees[-1].name} is {date.humanize()}!\nMeeting reminder: {meetup.reason}')
                     else:

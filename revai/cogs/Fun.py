@@ -1,12 +1,14 @@
-import discord, os, sys, random
+import discord
 from discord.ext import commands
-from PIL import Image, ImageOps
-from io import BytesIO
 
 class Fun(commands.Cog):
     """Random commands."""
     def __init__(self, client):
         self.client = client
+
+    @commands.command()
+    async def ping(self, ctx):
+        await ctx.send(f'Ping: {(self.client.latency*1000):.2f}ms')
 
 def setup(client):
     client.add_cog(Fun(client))
