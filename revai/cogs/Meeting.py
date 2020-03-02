@@ -1,7 +1,5 @@
 import discord, arrow
-from collections import defaultdict
 from discord.ext import commands, tasks
-from datetime import datetime
 from revai.database import *
 
 class Meeting(commands.Cog):
@@ -9,6 +7,19 @@ class Meeting(commands.Cog):
     def __init__(self, client):
         self.client = client
         self.schedule.start()
+
+    @commands.command(usage='`!meetups`')
+    async def meetups(self, ctx):
+        """See all ongoing meetups."""
+        with db_session:
+            meets = Meetup.select()
+            if len(meets) > 0:
+                embed = discord.Embed(title='Meetups', description='A list of ongoing meetups!', color=0xf26925)
+                for meetup in meets:
+                    embed.add_field(name=meetup.name, value=f"{meetup.reason}\nDate: {arrow.get(meetup.date).format('MMMM Do [at] h:mmA')}")
+                await ctx.send(embed=embed)
+            else:
+                await ctx.send("There doesn't seem to be any meetups!")
 
     @commands.command(usage='`!meetup 1-31-2021 12:00PM something @everyone because tomorrow is February`')
     async def meetup(self, ctx, date, time, name, invitations: commands.Greedy[discord.Member], *, reason=None):
@@ -27,17 +38,17 @@ class Meeting(commands.Cog):
     @commands.command(usage='`!attending something`')
     async def attending(self, ctx, name):
         """Adds you to the attending list for the specified meetup."""
-        msg = await add_attendee(name=name, attendee=ctx.author)
-        await ctx.send(msg)
+        await add_attendee(ctx, name=name, attendee=ctx.author)
 
     @commands.command(usage='`!contribute something i have nothing`')
     async def contribute(self, ctx, name, *, stuff):
         """Contributes to the specified meetup."""
-        if Contribution.exists(contributor=str(ctx.author.id)):
-            msg = await update_contribution(contributor=ctx.author, contribution=stuff)
-        else:
-            msg = await add_contributor(name=name, contributor=ctx.author, contribution=stuff)
-        await ctx.send(msg)
+        await add_contributor(ctx, name=name, contributor=ctx.author, contribution=stuff)
+
+    @commands.command()
+    @commands.is_owner()
+    async def rm_meet(self, ctx, name):
+        await remove_meetup(ctx, name=name)
 
     @tasks.loop(minutes=1)
     async def schedule(self):
@@ -60,6 +71,7 @@ class Meeting(commands.Cog):
                         else:
                             await member.send(f'Your meetup with {organizer.name} is {date.humanize()}!\nMeeting reminder: {meetup.reason}')
                     meetup.delete()
+                    db.commit()
 
 def setup(client):
     client.add_cog(Meeting(client))

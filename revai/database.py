@@ -63,43 +63,43 @@ async def add_meetup(organizer: discord.Member, name: str, date: arrow.Arrow, in
         Meetup(organizer=str(organizer.id), name=name, date=str(date), invitations=[str(mem.id) for mem in invitations], reason=reason)
 
 @db_session
-async def add_attendee(name: str, attendee: discord.Member):
+async def add_attendee(ctx, name: str, attendee: discord.Member):
     """Adds an attendee to the given meetup."""
     if Meetup.exists(name=name):
         meet = Meetup.get(name=name)
-        meet.attendees.append(attendee.id)
-        return "We will remind you before the meetup!"
+        meet.attendees.append(str(attendee.id))
+        db.commit()
+        await ctx.send("Thank you for attending! We will remind you of the meetup 30 minutes before.")
     else:
-        return "It doesn't seem like that is a meetup!"
+        await ctx.send("That doesn't seem to be an ongoing meetup, sorry!")
 
 @db_session
-async def add_contributor(name: str, contributor: discord.Member, contribution: str):
-    if Meetup.exists(name=name):
-        try:
-            Contribution(contributor=str(contributor.id), contributing=[contribution], meetup=Meetup.get(name=name))
-            return "Thanks for contributing!"
-        except:
-            return "You need to be attending first silly!"
-    else:
-        return "It doesn't seem like that is a meetup!"
-
-@db_session
-async def update_contribution(name: str, contributor: discord.Member, contribution: str):
+async def add_contributor(ctx, name: str, contributor: discord.Member, contribution: str):
     if Meetup.exists(name=name):
         meet = Meetup.get(name=name)
         if Contribution.exists(contributor=str(contributor.id), meetup=meet):
             contr = Contribution.get(contributor=str(contributor.id), meetup=meet)
             contr.contributing.append(contribution)
-            return "Thanks for adding to your contribution!"
+            db.commit()
+            await ctx.send("Thank you for adding to your contribution!")
         else:
-            return "It doesn't seem like you're in a meetup!"
+            Contribution(contributor=str(contributor.id), contributing=[contribution], meetup=meet)
+            db.commit()
+            await ctx.send("Thank you for contributing!")
     else:
-        return "It doesn't seem like that is a meetup!"
+        await ctx.send("That doesn't seem to be an ongoing meetup, sorry!")
 
 @db_session
-async def remove_meetup(name):
+async def remove_meetup(ctx, name):
     if Meetup.exists(name=name):
-        Meetup.get(name=name).delete()
+        meet = Meetup.get(name=name)
+        for contr in meet.contributions:
+            contr.delete()
+        meet.delete()
+        db.commit()
+        await ctx.send("Successfully removed meetup.")
+    else:
+        await ctx.send("Meetup does not exist.")
 
 @db_session
 async def update_guild(guild: discord.Guild):
